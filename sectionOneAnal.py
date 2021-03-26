@@ -90,19 +90,25 @@ monthlyReturns()
 normalDistribution, returnRange = calcNormalDistribution(amazonDaily['Daily Return'])
 
 normDistFig = make_subplots(specs=[[{"secondary_y": True}]])
-normDistFig.add_trace(go.Histogram(x=amazonDaily['Daily Return']), secondary_y=False)
-normDistFig.add_trace(go.Scatter(x=returnRange,y=normalDistribution, mode='lines'), secondary_y=True)
+normDistFig.add_trace(
+    go.Histogram(x=amazonDaily['Daily Return'], name="Histogram of daily returns"), 
+    secondary_y=False
+    )
+normDistFig.add_trace(
+    go.Scatter(x=returnRange,y=normalDistribution, mode='lines', name="Normal distribution of daily returns"), 
+    secondary_y=True
+    )
 
 # Add figure title
 normDistFig.update_layout(
-    title_text="Double Y Axis Example"
+    title_text="Daily returns histogram and normal distribution of daily returns"
 )
 
 # Set x-axis title
-normDistFig.update_xaxes(title_text="xaxis title")
+normDistFig.update_xaxes(title_text="Daily returns")
 
 # Set y-axes titles
-normDistFig.update_yaxes(title_text="<b>primary</b> yaxis title", secondary_y=False)
-normDistFig.update_yaxes(title_text="<b>secondary</b> yaxis title", secondary_y=True)
+normDistFig.update_yaxes(title_text="<b>Count</b> of Daily Return", secondary_y=False)
+normDistFig.update_yaxes(title_text="<b>Probability</b> of Daily Return", secondary_y=True)
 
 normDistFig.show()

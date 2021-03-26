@@ -1,7 +1,7 @@
 import csv
 import pandas as pd
 
-filename = "./data/AMZN.csv"
+filename = "./data/AMZNweekly.csv"
 
 dates = []
 openList = []
@@ -32,4 +32,4 @@ df = pd.DataFrame(list(zip(dates, openList, high, low, close, adjusted_close, vo
 
 print(df)
 
-df.to_pickle('AMZN.pkl')
+df.to_pickle('AMZNweekly.pkl')

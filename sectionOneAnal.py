@@ -3,10 +3,20 @@ import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 from plotly.subplots import make_subplots
+import datetime as dt
 
 amazonDaily = pd.read_pickle('./AMZNdaily.pkl')
 amazonWeekly = pd.read_pickle('./AMZNweekly.pkl')
 amazonMonthly = pd.read_pickle('./AMZNmonthly.pkl')
+
+amazonDaily['Dates'] = pd.to_datetime(amazonDaily['Dates'])
+amazonDaily = amazonDaily.set_index('Dates')
+amazonWeekly['Dates'] = pd.to_datetime(amazonWeekly['Dates'])
+amazonWeekly = amazonWeekly.set_index('Dates')
+amazonMonthly['Dates'] = pd.to_datetime(amazonMonthly['Dates'])
+amazonMonthly = amazonMonthly.set_index('Dates')
+
+amazonDaily = amazonDaily[amazonDaily.index.year == 2019]
 
 def dailyReturns():
     dailyReturns = []
@@ -108,7 +118,14 @@ def normalDistributionFunction(mean, std, returnValue):
 def calcVolatility(returns, deltaT):
     std = np.std(returns)
     volatility = 1/((deltaT)**(1/2)) * std
+    print('volatility calculated as', volatility)
     return volatility
+
+def calcDriftFrac(startPrice, endPrice):
+    return ((endPrice - startPrice)/startPrice)
+
+def calcDriftPercentage(startPrice, endPrice):
+    return calcDriftFrac(startPrice, endPrice) * 100
 
 dailyReturns()
 # weeklyReturns()

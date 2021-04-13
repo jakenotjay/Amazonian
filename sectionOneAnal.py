@@ -3,7 +3,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 from plotly.subplots import make_subplots
-import datetime as dt
+from datetime import date as dt
+import pylab
+import scipy.stats as stats
 
 amazonDaily = pd.read_pickle('./AMZNdaily.pkl')
 amazonWeekly = pd.read_pickle('./AMZNweekly.pkl')
@@ -16,8 +18,10 @@ amazonWeekly = amazonWeekly.set_index('Dates')
 amazonMonthly['Dates'] = pd.to_datetime(amazonMonthly['Dates'])
 amazonMonthly = amazonMonthly.set_index('Dates')
 
-amazonDaily = amazonDaily[amazonDaily.index.year == 2019]
+# amazonDaily = amazonDaily[amazonDaily.index.year == 2020]
+amazonDaily['Adj Close'] = pd.to_numeric(amazonDaily['Adj Close'])
 
+print(amazonDaily.dtypes)
 def dailyReturns():
     dailyReturns = []
     # for day 1 of returns
@@ -86,28 +90,6 @@ def calcNormalDistribution(returns, nPts):
 
     return normDist, returnRange
 
-def calcProbabilityDistribution(returns, nPts):
-    maxReturn = np.max(returns)+1
-    minReturn = np.min(returns)
-    nReturns = len(returns)
-    
-    returnRange = np.linspace(minReturn, maxReturn, num = nPts+1)
-    binCounts = np.zeros(nPts)
-
-    for i in range(nPts):
-        binMin = returnRange[i]
-        binMax = returnRange[i+1]
-        print('calculating bin count of bin', i+1)
-        for j in range(nReturns):
-            # update with np.any
-            if(returns[j] >= binMin and returns[j] < binMax):
-                binCounts[i] += 1
-
-    print('sum of bin counts, should equal the same as nReturns', np.sum(binCounts), 'with nReturn being', nReturns)
-    binProbabilities = binCounts / nReturns
-    print('sum of bin counts, ensuring it equals one', np.sum(binProbabilities))
-
-    return binProbabilities, returnRange
 
 def normalDistributionFunction(mean, std, returnValue):
     constTerm = 1/(std * np.sqrt(2 * np.pi))
@@ -122,47 +104,109 @@ def calcVolatility(returns, deltaT):
     return volatility
 
 def calcDriftFrac(startPrice, endPrice):
-    return ((endPrice - startPrice)/startPrice)
+    driftFraction = ((endPrice - startPrice)/startPrice)
+    print('drift fraction calculated as', driftFraction)
+    return driftFraction
 
 def calcDriftPercentage(startPrice, endPrice):
-    return calcDriftFrac(startPrice, endPrice) * 100
+    driftPercentage = calcDriftFrac(startPrice, endPrice) * 100
+    print('drift percentage calculated as', driftPercentage)
+    return driftPercentage
 
-dailyReturns()
-# weeklyReturns()
-# monthlyReturns()
-delta_t = len(amazonDaily['Daily Return'])/252
-daily_volatility = calcVolatility(amazonDaily['Daily Return'], delta_t)
+def plotReturns(df):
+    # Adjusted close price every day
+    priceFig = go.Figure(data=go.Scatter(x=df.index, y=df['Adj Close'], mode='lines'))
+    priceFig.show()
 
-normalDistribution, returnRange = calcNormalDistribution(amazonDaily['Daily Return'], nPts=1000)
-binDistribution, returnRange = calcProbabilityDistribution(amazonDaily['Daily Return'], nPts=1000)
+# principal value in dollars, start date and end date strings
+# YYYY-MM-DD format
+def calcInvestmentStats(principal, startDate, endDate):
+    startDate = dt.fromisoformat(startDate)
+    endDate = dt.fromisoformat(endDate)
 
-normDistFig = make_subplots(specs=[[{"secondary_y": True}]])
-normDistFig.add_trace(
-    go.Histogram(x=amazonDaily['Daily Return'], name="Histogram of daily returns", nbinsx=1000), 
-    secondary_y=False,
-    )
-normDistFig.add_trace(
-    go.Scatter(x=returnRange,y=normalDistribution, mode='lines', name="Normal distribution of daily returns"), 
-    secondary_y=True
-    )
+    timePeriodData = amazonDaily[startDate: endDate]
+    plotReturns(timePeriodData)
 
-# Add figure title
-normDistFig.update_layout(
-    title_text="Daily returns histogram and normal distribution of daily returns"
-)
+    print('With an initial investment of', principal, 'dollars')
+    print('Starting from date', startDate, 'to', endDate)
 
-# Set x-axis title
-normDistFig.update_xaxes(title_text="Daily returns")
+    firstValue = timePeriodData['Adj Close'][0]
+    print('first value', firstValue)
+    lastValue = timePeriodData['Adj Close'][-1]
+    print('last value', lastValue)
 
-# Set y-axes titles
-normDistFig.update_yaxes(title_text="<b>Count</b> of Daily Return", secondary_y=False)
-normDistFig.update_yaxes(title_text="<b>Probability</b> of Daily Return", secondary_y=True)
+    nStocks = np.floor(principal / firstValue)
+    print('Initial purchase of', nStocks, 'stocks at a price of', firstValue, 'dollars')
 
-normDistFig.show()
+    finalReturns = lastValue * nStocks
+    print('Sold at a price of', lastValue, 'with a return of', finalReturns)
 
-qqPlotFig = go.Figure(
-    data=go.Scatter(x=normalDistribution, y=binDistribution), 
-    layout_yaxis_range=[0, 0.15], 
-    layout_xaxis_range=[0, 0.15]
-    )
-qqPlotFig.show()
+    roi = finalReturns - principal
+    roiPerc = ((finalReturns-principal)/principal) * 100
+
+    print('The return on investment is', roi, 'dollars, or a percentage of', roiPerc, '%')
+
+    maxStockPrice = np.max(timePeriodData['Adj Close'])
+    minStockPrice = np.min(timePeriodData['Adj Close'])
+
+    print(timePeriodData['Adj Close'][minStockPrice].index)
+
+    maxReturnPrice = maxStockPrice * nStocks
+    minReturnPrice = minStockPrice * nStocks
+
+    maxRoi = maxReturnPrice - principal
+    maxRoiPerc = ((maxReturnPrice-principal)/principal) * 100
+
+    minRoi = minReturnPrice - principal
+    minRoiPerc = ((minReturnPrice-principal)/principal) * 100
+
+    print('In the given time period the max stock price is', maxStockPrice, 'dollars, the min price is', minStockPrice, 'dollars')
+    print('In the given time period the maximum return price is', maxReturnPrice, 'dollars, the min return price is', minReturnPrice, 'dollars')
+    print('In the given time period the max ROI is', maxRoi, 'dollars, the min ROI is', minRoi, 'dollars')
+    print('In the given time period the max ROI is', maxRoiPerc, '%, the min ROI is', minRoiPerc, '%')
+    # calc max and min price of investment
+    # what would return be on savings account
+
+calcInvestmentStats(1000000, '2020-01-01', '2020-12-31')
+
+# dailyReturns()
+# # weeklyReturns()
+# # monthlyReturns()
+# delta_t = len(amazonDaily['Daily Return'])/252
+# daily_volatility = calcVolatility(amazonDaily['Daily Return'], delta_t)
+# firstValue = amazonDaily['Adj Close'][0]
+# print('first value', firstValue)
+# lastValue = amazonDaily['Adj Close'][-1]
+# print('last value', lastValue)
+# calcDriftFrac(firstValue, lastValue)
+# calcDriftPercentage(firstValue, lastValue)
+
+# normalDistribution, returnRange = calcNormalDistribution(amazonDaily['Daily Return'], nPts=1000)
+
+# normDistFig = make_subplots(specs=[[{"secondary_y": True}]])
+# normDistFig.add_trace(
+#     go.Histogram(x=amazonDaily['Daily Return'], name="Histogram of daily returns"), 
+#     secondary_y=False,
+#     )
+# normDistFig.add_trace(
+#     go.Scatter(x=returnRange,y=normalDistribution, mode='lines', name="Normal distribution of daily returns"), 
+#     secondary_y=True
+#     )
+
+# # Add figure title
+# normDistFig.update_layout(
+#     title_text="Daily returns histogram and normal distribution of daily returns"
+# )
+
+# # Set x-axis title
+# normDistFig.update_xaxes(title_text="Daily returns")
+
+# # Set y-axes titles
+# normDistFig.update_yaxes(title_text="<b>Count</b> of Daily Return", secondary_y=False)
+# normDistFig.update_yaxes(title_text="<b>Probability</b> of Daily Return", secondary_y=True)
+
+# normDistFig.show()
+
+# # QQplot of the daily returns against a theoretical normal distribution
+# stats.probplot(amazonDaily['Daily Return'], dist='norm', plot=pylab)
+# pylab.show()

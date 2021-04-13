@@ -118,6 +118,29 @@ def plotReturns(df):
     priceFig = go.Figure(data=go.Scatter(x=df.index, y=df['Adj Close'], mode='lines'))
     priceFig.show()
 
+# principal in dollars, rate in fraction (5% = 0.05), time in years
+def calcContinuousCompoundInterest(principal, interestRate, time):
+    # print('Calculating compound interest')
+    finalAmount = principal * np.exp(interestRate * time)
+    # print('calculated final amount from savings interest is:', finalAmount)
+    return finalAmount
+
+def calcSavingsInvestment(principal, startDate, endDate):
+    # monthly interest rates as a percentage
+    interestRates = pd.read_pickle('./interestRates.pkl')
+    interestRates = interestRates[startDate: endDate]
+    # print('interest rates for time period are\n', interestRates['Rates'])
+
+    time = len(interestRates) / 12
+    interestRate = interestRates['Rates'].mean() / 100
+    # print('calculated interest rate is', interestRate)
+
+    totalReturn = calcContinuousCompoundInterest(principal, interestRate, time)
+    roi = totalReturn - principal
+    roiPerc = (roi/ principal) * 100
+
+    return totalReturn, roi, roiPerc
+
 # principal value in dollars, start date and end date strings
 # YYYY-MM-DD format
 def calcInvestmentStats(principal, startDate, endDate):
@@ -149,8 +172,6 @@ def calcInvestmentStats(principal, startDate, endDate):
     maxStockPrice = np.max(timePeriodData['Adj Close'])
     minStockPrice = np.min(timePeriodData['Adj Close'])
 
-    print(timePeriodData['Adj Close'][minStockPrice].index)
-
     maxReturnPrice = maxStockPrice * nStocks
     minReturnPrice = minStockPrice * nStocks
 
@@ -164,10 +185,14 @@ def calcInvestmentStats(principal, startDate, endDate):
     print('In the given time period the maximum return price is', maxReturnPrice, 'dollars, the min return price is', minReturnPrice, 'dollars')
     print('In the given time period the max ROI is', maxRoi, 'dollars, the min ROI is', minRoi, 'dollars')
     print('In the given time period the max ROI is', maxRoiPerc, '%, the min ROI is', minRoiPerc, '%')
-    # calc max and min price of investment
-    # what would return be on savings account
 
-calcInvestmentStats(1000000, '2020-01-01', '2020-12-31')
+    savingsTotals, savingsRoi, savingsRoiPerc = calcSavingsInvestment(principal, startDate, endDate)
+    print('In the giving time frame, the total value after the principal investment had been placed in savings accounts would be:')
+    print('Savings totals - ', savingsTotals, 'dollars')
+    print('ROI for savings would be - ', savingsRoi, 'dollars')
+    print('ROI percentage for savings would be - ', savingsRoiPerc, '%')
+
+calcInvestmentStats(1000000, '2019-01-01', '2019-12-31')
 
 # dailyReturns()
 # # weeklyReturns()

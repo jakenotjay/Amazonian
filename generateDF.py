@@ -1,35 +1,32 @@
 import csv
 import pandas as pd
+from datetime import date
 
-filename = "./data/AMZNweekly.csv"
+filename = "./data/interestRates.csv"
 
 dates = []
-openList = []
-high = []
-low = []
-close = []
-adjusted_close = []
-volume = []
+rates = []
 
 with open(filename) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
     for row in csv_reader:
         if line_count == 0:
-            print(f'Column names are {", ".join(row)}')
+            print(f'Column names are {",".join(row)}')
             line_count += 1
         else:
-            dates.append(row[0])
-            openList.append(row[1])
-            high.append(row[2])
-            low.append(row[3])
-            close.append(row[4])
-            adjusted_close.append(row[5])
-            volume.append(row[6])
+            splitDates = row[0].split('/')
+            dates.append(date(year=int(splitDates[2]), month=int(splitDates[1]), day=int(splitDates[0])))
+            rates.append(row[1])
             line_count += 1
 
-df = pd.DataFrame(list(zip(dates, openList, high, low, close, adjusted_close, volume)), columns=['Dates','Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume'])
+df = pd.DataFrame(list(zip(dates, rates)), columns=['Dates','Rates'])
+print(df)
+# df['Dates'] = pd.to_datetime(df['Dates'])
+df = df.set_index('Dates')
+df['Rates'] = pd.to_numeric(df['Rates'])
 
 print(df)
+print(df.dtypes)
 
-df.to_pickle('AMZNweekly.pkl')
+df.to_pickle('interestRates.pkl')

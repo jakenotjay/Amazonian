@@ -33,4 +33,4 @@ df = pd.DataFrame(list(zip(dates, openList, high, low, close, adjusted_close, vo
 print(df)
 
 df.to_pickle('AMZNweekly.pkl')
-print('adam stinks')
+print('adam doesnt smell')

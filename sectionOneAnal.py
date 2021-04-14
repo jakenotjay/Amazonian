@@ -125,13 +125,20 @@ def calcContinuousCompoundInterest(principal, interestRate, time):
     # print('calculated final amount from savings interest is:', finalAmount)
     return finalAmount
 
+def findTimeDifferenceInYears(startDate, endDate):
+    difference = endDate - startDate
+    differenceInYears = (difference.days + difference.seconds/86400.0) / 365.2425
+    return differenceInYears
+
 def calcSavingsInvestment(principal, startDate, endDate):
     # monthly interest rates as a percentage
     interestRates = pd.read_pickle('./interestRates.pkl')
     interestRates = interestRates[startDate: endDate]
-    # print('interest rates for time period are\n', interestRates['Rates'])
+    
+    print('interest rates for time period are\n', interestRates['Rates'])
 
-    time = len(interestRates) / 12
+    time = findTimeDifferenceInYears(startDate, endDate)
+    print('time difference is', time)
     interestRate = interestRates['Rates'].mean() / 100
     # print('calculated interest rate is', interestRate)
 

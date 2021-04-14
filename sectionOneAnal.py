@@ -7,35 +7,40 @@ from datetime import date as dt
 import pylab
 import scipy.stats as stats
 
-amazonDaily = pd.read_pickle('./AMZNdaily.pkl')
-amazonWeekly = pd.read_pickle('./AMZNweekly.pkl')
-amazonMonthly = pd.read_pickle('./AMZNmonthly.pkl')
+stockname = 'DCL'
 
-amazonDaily['Dates'] = pd.to_datetime(amazonDaily['Dates'])
-amazonDaily = amazonDaily.set_index('Dates')
-amazonWeekly['Dates'] = pd.to_datetime(amazonWeekly['Dates'])
-amazonWeekly = amazonWeekly.set_index('Dates')
-amazonMonthly['Dates'] = pd.to_datetime(amazonMonthly['Dates'])
-amazonMonthly = amazonMonthly.set_index('Dates')
+daily = pd.read_pickle('./'+stockname+'daily.pkl')
+weekly = pd.read_pickle('./'+stockname+'weekly.pkl')
+monthly = pd.read_pickle('./'+stockname+'monthly.pkl')
 
-# amazonDaily = amazonDaily[amazonDaily.index.year == 2020]
-amazonDaily['Adj Close'] = pd.to_numeric(amazonDaily['Adj Close'])
+# daily['Dates'] = pd.to_datetime(daily['Dates'])
+# daily = daily.set_index('Dates')
+# weekly['Dates'] = pd.to_datetime(weekly['Dates'])
+# weekly = weekly.set_index('Dates')
+# monthly['Dates'] = pd.to_datetime(monthly['Dates'])
+# monthly = monthly.set_index('Dates')
 
-print(amazonDaily.dtypes)
+print(daily['Adj Close'][40:70])
+
+daily['Adj Close'] = pd.to_numeric(daily['Adj Close'])
+weekly['Adj Close'] = pd.to_numeric(weekly['Adj Close'])
+monthly['Adj Close'] = pd.to_numeric(monthly['Adj Close'])
+
+
 def dailyReturns():
     dailyReturns = []
     # for day 1 of returns
     dailyReturns.append(0)
-    for i in range(1, len(amazonDaily)):
-        ydayClosingValue = float(amazonDaily['Adj Close'][i-1])
-        tdayClosingValue = float(amazonDaily['Adj Close'][i])
+    for i in range(1, len(daily)):
+        ydayClosingValue = float(daily['Adj Close'][i-1])
+        tdayClosingValue = float(daily['Adj Close'][i])
         dailyReturn = ((tdayClosingValue - ydayClosingValue)/ydayClosingValue) * 100
         dailyReturns.append(dailyReturn)
 
-    amazonDaily['Daily Return'] = dailyReturns
+    daily['Daily Return'] = dailyReturns
 
     fig = px.histogram(
-    data_frame=amazonDaily, 
+    data_frame=daily, 
     x='Daily Return',
     #nbins=50
     )
@@ -44,16 +49,16 @@ def dailyReturns():
 def weeklyReturns():
     weeklyReturns = []
     weeklyReturns.append(0)
-    for i in range(1, len(amazonWeekly)):
-        lastWeekClosingValue = float(amazonWeekly['Adj Close'][i-1])
-        thisWeekClosingValue = float(amazonWeekly['Adj Close'][i])
+    for i in range(1, len(weekly)):
+        lastWeekClosingValue = float(weekly['Adj Close'][i-1])
+        thisWeekClosingValue = float(weekly['Adj Close'][i])
         weeklyReturn = ((thisWeekClosingValue - lastWeekClosingValue)/lastWeekClosingValue) * 100
         weeklyReturns.append(weeklyReturn)
 
-    amazonWeekly['Weekly Return'] = weeklyReturns
+    weekly['Weekly Return'] = weeklyReturns
 
     fig = px.histogram(
-    data_frame=amazonWeekly, 
+    data_frame=weekly, 
     x='Weekly Return',
     #nbins=50
     )
@@ -62,16 +67,16 @@ def weeklyReturns():
 def monthlyReturns():
     monthlyReturns = []
     monthlyReturns.append(0)
-    for i in range(1, len(amazonMonthly)):
-        lastMonthClosingValue = float(amazonMonthly['Adj Close'][i-1])
-        thisMonthClosingValue = float(amazonMonthly['Adj Close'][i])
+    for i in range(1, len(monthly)):
+        lastMonthClosingValue = float(monthly['Adj Close'][i-1])
+        thisMonthClosingValue = float(monthly['Adj Close'][i])
         monthlyReturn = ((thisMonthClosingValue - lastMonthClosingValue)/lastMonthClosingValue) * 100
         monthlyReturns.append(monthlyReturn)
 
-    amazonMonthly['Monthly Return'] = monthlyReturns
+    monthly['Monthly Return'] = monthlyReturns
 
     fig = px.histogram(
-    data_frame=amazonMonthly, 
+    data_frame=monthly, 
     x='Monthly Return',
     #nbins=50
     )
@@ -154,16 +159,16 @@ def calcInvestmentStats(principal, startDate, endDate):
     startDate = dt.fromisoformat(startDate)
     endDate = dt.fromisoformat(endDate)
 
-    timePeriodData = amazonDaily[startDate: endDate]
+    timePeriodData = daily[startDate: endDate]
     plotReturns(timePeriodData)
 
     print('With an initial investment of', principal, 'dollars')
     print('Starting from date', startDate, 'to', endDate)
 
-    firstValue = timePeriodData['Adj Close'][0]
-    print('first value', firstValue)
-    lastValue = timePeriodData['Adj Close'][-1]
-    print('last value', lastValue)
+    firstValue = timePeriodData['Adj Close'][0]/100
+    print('first value', firstValue, 'dollars')
+    lastValue = timePeriodData['Adj Close'][-1]/100
+    print('last value', lastValue, 'dollars')
 
     nStocks = np.floor(principal / firstValue)
     print('Initial purchase of', nStocks, 'stocks at a price of', firstValue, 'dollars')
@@ -179,8 +184,8 @@ def calcInvestmentStats(principal, startDate, endDate):
     maxStockPrice = np.max(timePeriodData['Adj Close'])
     minStockPrice = np.min(timePeriodData['Adj Close'])
 
-    maxReturnPrice = maxStockPrice * nStocks
-    minReturnPrice = minStockPrice * nStocks
+    maxReturnPrice = (maxStockPrice/100) * nStocks
+    minReturnPrice = (minStockPrice/100) * nStocks
 
     maxRoi = maxReturnPrice - principal
     maxRoiPerc = ((maxReturnPrice-principal)/principal) * 100
@@ -188,7 +193,7 @@ def calcInvestmentStats(principal, startDate, endDate):
     minRoi = minReturnPrice - principal
     minRoiPerc = ((minReturnPrice-principal)/principal) * 100
 
-    print('In the given time period the max stock price is', maxStockPrice, 'dollars, the min price is', minStockPrice, 'dollars')
+    print('In the given time period the max stock price is', maxStockPrice, 'cents, the min price is', minStockPrice, 'cents')
     print('In the given time period the maximum return price is', maxReturnPrice, 'dollars, the min return price is', minReturnPrice, 'dollars')
     print('In the given time period the max ROI is', maxRoi, 'dollars, the min ROI is', minRoi, 'dollars')
     print('In the given time period the max ROI is', maxRoiPerc, '%, the min ROI is', minRoiPerc, '%')
@@ -204,20 +209,20 @@ calcInvestmentStats(1000000, '2019-01-01', '2019-12-31')
 # dailyReturns()
 # # weeklyReturns()
 # # monthlyReturns()
-# delta_t = len(amazonDaily['Daily Return'])/252
-# daily_volatility = calcVolatility(amazonDaily['Daily Return'], delta_t)
-# firstValue = amazonDaily['Adj Close'][0]
+# delta_t = len(daily['Daily Return'])/252
+# daily_volatility = calcVolatility(daily['Daily Return'], delta_t)
+# firstValue = daily['Adj Close'][0]
 # print('first value', firstValue)
-# lastValue = amazonDaily['Adj Close'][-1]
+# lastValue = daily['Adj Close'][-1]
 # print('last value', lastValue)
 # calcDriftFrac(firstValue, lastValue)
 # calcDriftPercentage(firstValue, lastValue)
 
-# normalDistribution, returnRange = calcNormalDistribution(amazonDaily['Daily Return'], nPts=1000)
+# normalDistribution, returnRange = calcNormalDistribution(daily['Daily Return'], nPts=1000)
 
 # normDistFig = make_subplots(specs=[[{"secondary_y": True}]])
 # normDistFig.add_trace(
-#     go.Histogram(x=amazonDaily['Daily Return'], name="Histogram of daily returns"), 
+#     go.Histogram(x=daily['Daily Return'], name="Histogram of daily returns"), 
 #     secondary_y=False,
 #     )
 # normDistFig.add_trace(
@@ -240,5 +245,5 @@ calcInvestmentStats(1000000, '2019-01-01', '2019-12-31')
 # normDistFig.show()
 
 # # QQplot of the daily returns against a theoretical normal distribution
-# stats.probplot(amazonDaily['Daily Return'], dist='norm', plot=pylab)
+# stats.probplot(daily['Daily Return'], dist='norm', plot=pylab)
 # pylab.show()

@@ -7,7 +7,7 @@ from datetime import date as dt
 import pylab
 import scipy.stats as stats
 
-stockname = 'DCL'
+stockname = 'AMZN'
 
 daily = pd.read_pickle('./'+stockname+'daily.pkl')
 weekly = pd.read_pickle('./'+stockname+'weekly.pkl')

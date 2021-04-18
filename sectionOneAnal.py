@@ -138,7 +138,7 @@ def calcSavingsInvestment(principal, startDate, endDate):
     interestRates = pd.read_pickle('./interestRates.pkl')
     interestRates = interestRates[startDate: endDate]
     
-    print('interest rates for time period are\n', interestRates['Rates'])
+    # print('interest rates for time period are\n', interestRates['Rates'])
 
     time = findTimeDifferenceInYears(startDate, endDate)
     print('time difference is', time)
@@ -204,44 +204,44 @@ def calcInvestmentStats(principal, startDate, endDate):
 
 calcInvestmentStats(1000000, '2019-01-01', '2019-12-31')
 
-# dailyReturns()
+dailyReturns()
 # # weeklyReturns()
 # # monthlyReturns()
 # delta_t = len(daily['Daily Return'])/252
 # daily_volatility = calcVolatility(daily['Daily Return'], delta_t)
-# firstValue = daily['Adj Close'][0]
-# print('first value', firstValue)
-# lastValue = daily['Adj Close'][-1]
-# print('last value', lastValue)
-# calcDriftFrac(firstValue, lastValue)
-# calcDriftPercentage(firstValue, lastValue)
+firstValue = daily['Adj Close'][0]
+print('first value', firstValue)
+lastValue = daily['Adj Close'][-1]
+print('last value', lastValue)
+calcDriftFrac(firstValue, lastValue)
+calcDriftPercentage(firstValue, lastValue)
 
-# normalDistribution, returnRange = calcNormalDistribution(daily['Daily Return'], nPts=1000)
+normalDistribution, returnRange = calcNormalDistribution(daily['Daily Return'], nPts=1000)
 
-# normDistFig = make_subplots(specs=[[{"secondary_y": True}]])
-# normDistFig.add_trace(
-#     go.Histogram(x=daily['Daily Return'], name="Histogram of daily returns"), 
-#     secondary_y=False,
-#     )
-# normDistFig.add_trace(
-#     go.Scatter(x=returnRange,y=normalDistribution, mode='lines', name="Normal distribution of daily returns"), 
-#     secondary_y=True
-#     )
+normDistFig = make_subplots(specs=[[{"secondary_y": True}]])
+normDistFig.add_trace(
+    go.Histogram(x=daily['Daily Return'], name="Histogram of daily returns"), 
+    secondary_y=False,
+    )
+normDistFig.add_trace(
+    go.Scatter(x=returnRange,y=normalDistribution, mode='lines', name="Normal distribution of daily returns"), 
+    secondary_y=True
+    )
 
-# # Add figure title
-# normDistFig.update_layout(
-#     title_text="Daily returns histogram and normal distribution of daily returns"
-# )
+# Add figure title
+normDistFig.update_layout(
+    title_text="Daily returns histogram and normal distribution of daily returns"
+)
 
-# # Set x-axis title
-# normDistFig.update_xaxes(title_text="Daily returns")
+# Set x-axis title
+normDistFig.update_xaxes(title_text="Daily returns")
 
-# # Set y-axes titles
-# normDistFig.update_yaxes(title_text="<b>Count</b> of Daily Return", secondary_y=False)
-# normDistFig.update_yaxes(title_text="<b>Probability</b> of Daily Return", secondary_y=True)
+# Set y-axes titles
+normDistFig.update_yaxes(title_text="<b>Count</b> of Daily Return", secondary_y=False)
+normDistFig.update_yaxes(title_text="<b>Probability</b> of Daily Return", secondary_y=True)
 
-# normDistFig.show()
+normDistFig.show()
 
-# # QQplot of the daily returns against a theoretical normal distribution
-# stats.probplot(daily['Daily Return'], dist='norm', plot=pylab)
-# pylab.show()
+# QQplot of the daily returns against a theoretical normal distribution
+stats.probplot(daily['Daily Return'], dist='norm', plot=pylab)
+pylab.show()

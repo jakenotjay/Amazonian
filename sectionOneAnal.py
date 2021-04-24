@@ -6,6 +6,7 @@ from plotly.subplots import make_subplots
 from datetime import date as dt
 import pylab
 import scipy.stats as stats
+from functools import reduce
 
 stockname = 'AMZN'
 
@@ -202,8 +203,41 @@ def calcInvestmentStats(principal, startDate, endDate):
     print('ROI for savings would be - ', savingsRoi, 'dollars')
     print('ROI percentage for savings would be - ', savingsRoiPerc, '%')
 
-calcInvestmentStats(1000000, '2019-01-01', '2019-12-31')
+def normaliseData(returns):
+    years = np.unique(returns.index.year)
+    # print('years',years)
+    # print('dtype', years.dtype)
+    nYears = len(years)
+    normalisedData = []
+    for i in range(nYears):
+        yearlyAdjClose = returns[returns.index.year == years[i]]['Adj Close']
+        maxValue = np.max(yearlyAdjClose)
+        normalisedYearly = yearlyAdjClose / maxValue
+        for normValue in normalisedYearly.values:
+            normalisedData.append(normValue)
+    
+    returns['Normalised Adj Close'] = normalisedData
+    # print('normalised adj close', returns['Normalised Adj Close'])
+    # print('adj close', returns['Adj Close'])
 
+    # normalisedPlot = go.Figure()
+    # normalisedPlot.add_trace(go.Scatter(x=returns.index[returns.index.year == 2015], y=returns[returns.index.year == 2015]['Normalised Adj Close'], mode='lines'))
+    # normalisedPlot.add_trace(go.Scatter(x=returns.index[returns.index.year == 2016], y=returns[returns.index.year == 2016]['Normalised Adj Close'], mode='lines'))
+    # normalisedPlot.add_trace(go.Scatter(x=returns.index[returns.index.year == 2017], y=returns[returns.index.year == 2017]['Normalised Adj Close'], mode='lines'))
+    # normalisedPlot.add_trace(go.Scatter(x=returns.index[returns.index.year == 2018], y=returns[returns.index.year == 2018]['Normalised Adj Close'], mode='lines'))
+    # normalisedPlot.add_trace(go.Scatter(x=returns.index[returns.index.year == 2019], y=returns[returns.index.year == 2019]['Normalised Adj Close'], mode='lines'))
+    # normalisedPlot.show()
+    
+    dates = []
+    avgAdjClose = []
+
+    returns['MM-DD'] = returns.index.strftime('%m-%d')
+    commonDates = reduce(np.intersect1d, (returns[returns.index.year == 2015]['MM-DD'].values, returns[returns.index.year == 2016]['MM-DD'].values, returns[returns.index.year == 2017]['MM-DD'].values, returns[returns.index.year == 2018]['MM-DD'].values, returns[returns.index.year == 2019]['MM-DD'].values))
+    print(commonDates)
+
+
+calcInvestmentStats(1000000, '2019-01-01', '2019-12-31')
+normalisedData = normaliseData(daily)
 dailyReturns()
 # # weeklyReturns()
 # # monthlyReturns()
@@ -242,6 +276,34 @@ normDistFig.update_yaxes(title_text="<b>Probability</b> of Daily Return", second
 
 normDistFig.show()
 
+startDate = dt.fromisoformat('2019-01-01')
+endDate = dt.fromisoformat('2020-12-31')
+
+returnsData = daily[startDate: endDate]
+trendsData = pd.read_pickle('./AmazonTrendsWorldwide.pkl')
+trendsData['Trends'] = pd.to_numeric(trendsData['Trends'])
+trendsData = trendsData[startDate: endDate]
+facemaskTrendsData = pd.read_pickle('./AmazonTrendsMaskWorldwide.pkl')
+facemaskTrendsData['Trends'] = pd.to_numeric(facemaskTrendsData['Trends'])
+facemaskTrendsData = facemaskTrendsData[startDate: endDate]
+
+returnsTrendsFig = make_subplots(specs=[[{"secondary_y": True}]])
+returnsTrendsFig.add_trace(
+    go.Scatter(x=returnsData.index, y=returnsData['Adj Close'], mode='lines', name='AMZN Price (USD)'),
+    secondary_y=False
+)
+returnsTrendsFig.add_trace(
+    go.Scatter(x=trendsData.index, y=trendsData['Trends'], mode='lines', name='Amazon Google Trends'),
+    secondary_y=True
+)
+returnsTrendsFig.add_trace(
+    go.Scatter(x=facemaskTrendsData.index, y=facemaskTrendsData['Trends'], mode='lines', name='Amazon facemasks Google Trends'),
+    secondary_y=True
+)
+returnsTrendsFig.show()
+
 # QQplot of the daily returns against a theoretical normal distribution
+print(daily['Daily Return'])
 stats.probplot(daily['Daily Return'], dist='norm', plot=pylab)
 pylab.show()
+

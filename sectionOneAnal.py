@@ -7,6 +7,7 @@ from datetime import date as dt
 import pylab
 import scipy.stats as stats
 from functools import reduce
+import matplotlib.pyplot as plt
 
 stockname = 'AMZN'
 
@@ -38,13 +39,6 @@ def dailyReturns():
 
     daily['Daily Return'] = dailyReturns
 
-    fig = px.histogram(
-    data_frame=daily, 
-    x='Daily Return',
-    #nbins=50
-    )
-    fig.show()
-
 def weeklyReturns():
     weeklyReturns = []
     weeklyReturns.append(0)
@@ -56,13 +50,6 @@ def weeklyReturns():
 
     weekly['Weekly Return'] = weeklyReturns
 
-    fig = px.histogram(
-    data_frame=weekly, 
-    x='Weekly Return',
-    #nbins=50
-    )
-    fig.show()
-
 def monthlyReturns():
     monthlyReturns = []
     monthlyReturns.append(0)
@@ -73,13 +60,6 @@ def monthlyReturns():
         monthlyReturns.append(monthlyReturn)
 
     monthly['Monthly Return'] = monthlyReturns
-
-    fig = px.histogram(
-    data_frame=monthly, 
-    x='Monthly Return',
-    #nbins=50
-    )
-    fig.show()
 
 def calcNormalDistribution(returns, nPts):
     mean = np.mean(returns)
@@ -94,7 +74,6 @@ def calcNormalDistribution(returns, nPts):
 
     return normDist, returnRange
 
-
 def normalDistributionFunction(mean, std, returnValue):
     constTerm = 1/(std * np.sqrt(2 * np.pi))
     returnMinusMeanOverStd = (returnValue - mean) / std
@@ -103,15 +82,17 @@ def normalDistributionFunction(mean, std, returnValue):
 
 def calcVolatility(returns, deltaT):
     std = np.std(returns)
-    volatility = 1/((deltaT)**(1/2)) * std
+    volatility = (1/np.power(deltaT, 0.5)) * std
     print('volatility calculated as', volatility)
     return volatility
 
+# incorrect code
 def calcDriftFrac(startPrice, endPrice):
     driftFraction = ((endPrice - startPrice)/startPrice)
     print('drift fraction calculated as', driftFraction)
     return driftFraction
 
+# incorrect code
 def calcDriftPercentage(startPrice, endPrice):
     driftPercentage = calcDriftFrac(startPrice, endPrice) * 100
     print('drift percentage calculated as', driftPercentage)
@@ -138,8 +119,6 @@ def calcSavingsInvestment(principal, startDate, endDate):
     # monthly interest rates as a percentage
     interestRates = pd.read_pickle('./interestRates.pkl')
     interestRates = interestRates[startDate: endDate]
-    
-    # print('interest rates for time period are\n', interestRates['Rates'])
 
     time = findTimeDifferenceInYears(startDate, endDate)
     print('time difference is', time)
@@ -155,9 +134,6 @@ def calcSavingsInvestment(principal, startDate, endDate):
 # principal value in dollars, start date and end date strings
 # YYYY-MM-DD format
 def calcInvestmentStats(principal, startDate, endDate):
-    startDate = dt.fromisoformat(startDate)
-    endDate = dt.fromisoformat(endDate)
-
     timePeriodData = daily[startDate: endDate]
     plotReturns(timePeriodData)
 
@@ -234,76 +210,123 @@ def normaliseData(returns):
     returns['MM-DD'] = returns.index.strftime('%m-%d')
     commonDates = reduce(np.intersect1d, (returns[returns.index.year == 2015]['MM-DD'].values, returns[returns.index.year == 2016]['MM-DD'].values, returns[returns.index.year == 2017]['MM-DD'].values, returns[returns.index.year == 2018]['MM-DD'].values, returns[returns.index.year == 2019]['MM-DD'].values))
     print(commonDates)
+    
+def produceNormDistFig(returns, returnRange, normalDistribution):
+    normDistFig = make_subplots(specs=[[{"secondary_y": True}]])
+    normDistFig.add_trace(
+        go.Histogram(x=returns, name="Histogram of daily returns"), 
+        secondary_y=False,
+        )
+    normDistFig.add_trace(
+        go.Scatter(x=returnRange,y=normalDistribution, mode='lines', name="Normal distribution of daily returns"), 
+        secondary_y=True
+        )
 
-
-calcInvestmentStats(1000000, '2019-01-01', '2019-12-31')
-normalisedData = normaliseData(daily)
-dailyReturns()
-# # weeklyReturns()
-# # monthlyReturns()
-# delta_t = len(daily['Daily Return'])/252
-# daily_volatility = calcVolatility(daily['Daily Return'], delta_t)
-firstValue = daily['Adj Close'][0]
-print('first value', firstValue)
-lastValue = daily['Adj Close'][-1]
-print('last value', lastValue)
-calcDriftFrac(firstValue, lastValue)
-calcDriftPercentage(firstValue, lastValue)
-
-normalDistribution, returnRange = calcNormalDistribution(daily['Daily Return'], nPts=1000)
-
-normDistFig = make_subplots(specs=[[{"secondary_y": True}]])
-normDistFig.add_trace(
-    go.Histogram(x=daily['Daily Return'], name="Histogram of daily returns"), 
-    secondary_y=False,
-    )
-normDistFig.add_trace(
-    go.Scatter(x=returnRange,y=normalDistribution, mode='lines', name="Normal distribution of daily returns"), 
-    secondary_y=True
+    # Add figure title
+    normDistFig.update_layout(
+        title_text="Daily returns histogram and normal distribution of daily returns"
     )
 
-# Add figure title
-normDistFig.update_layout(
-    title_text="Daily returns histogram and normal distribution of daily returns"
-)
+    # Set x-axis title
+    normDistFig.update_xaxes(title_text="Daily returns (%)")
 
-# Set x-axis title
-normDistFig.update_xaxes(title_text="Daily returns")
+    # Set y-axes titles
+    normDistFig.update_yaxes(title_text="<b>Count</b> of Daily Return", secondary_y=False)
+    normDistFig.update_yaxes(title_text="<b>Probability</b> of Daily Return", secondary_y=True)
 
-# Set y-axes titles
-normDistFig.update_yaxes(title_text="<b>Count</b> of Daily Return", secondary_y=False)
-normDistFig.update_yaxes(title_text="<b>Probability</b> of Daily Return", secondary_y=True)
+    normDistFig.show()
 
-normDistFig.show()
+def produceQQplot(dailyReturns):
+    # QQplot of the daily returns against a theoretical normal distribution
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    stats.probplot(dailyReturns, dist='norm', plot=ax)
+    ax.set_title("QQplot of the Daily Returns against a theoretical normal distribution")
+    plt.show()
+
+def calcAnnualDrift(dailyClose):
+    nDays = len(dailyClose)
+    totalDailyDrift = 0
+    for i in range(1, nDays):
+        dailyReturn = dailyClose[i] - dailyClose[i-1]
+        dailyDrift = dailyReturn / dailyClose[i-1]
+        totalDailyDrift += dailyDrift
+
+    annualDrift = (totalDailyDrift / (nDays - 1)) * 252
+    return annualDrift
+
+# predicts future prices using normal distribution - returns as a fraction, start date, end date, deltaT - time to predict, confidence interval
+def predictFuturePrice(returns, startDate, endDate, deltaT, confidenceInterval = 2):
+    dailyClose = daily[startDate:endDate]['Adj Close']
+    firstDayPrice = dailyClose[0]
+    lastDayPrice = dailyClose[-1]
+
+    drift = calcAnnualDrift(dailyClose.values)
+
+    deltaS = drift * lastDayPrice * deltaT
+
+    volatility = calcVolatility(returns, findTimeDifferenceInYears(startDate, endDate))
+
+    uncertainty = volatility * np.sqrt(deltaT) * lastDayPrice * confidenceInterval
+
+    print('For annual drift of ', drift, 'and volatility', volatility)
+    print('The change in stock price is ', deltaS, '+-', uncertainty, 'within', confidenceInterval, 'confidence intervals')
+    print('This gives a range of', (lastDayPrice + deltaS) - uncertainty, 'to', (lastDayPrice + deltaS) + uncertainty)
+    return deltaS, uncertainty
+
+def generatePartOneStats(startDate, endDate):
+    print('Generating part one stats between', startDate,'and', endDate)
+    dailyReturns()
+    # weeklyReturns()
+    # monthlyReturns()
+
+    # find returns in given time period
+    returns = daily[startDate:endDate]['Daily Return']
+    returnsFrac = returns / 100
+
+    # stock price in this period is
+    plotReturns(daily[startDate: endDate])
+
+    # generate normal distribution for time period and histogram
+    normDist, returnRange = calcNormalDistribution(returns, nPts=1000)
+    produceNormDistFig(returns, returnRange, normDist)
+
+    # produce QQ plot
+    produceQQplot(returns)
+
+    # time in years to predict to    
+    predictionTime = 1
+    deltaS, uncertainty = predictFuturePrice(returnsFrac, startDate, endDate, predictionTime, confidenceInterval = 2)
+
+    # invest principal of 1 mil over same time period
+    calcInvestmentStats(1000000, startDate, endDate)
 
 startDate = dt.fromisoformat('2019-01-01')
-endDate = dt.fromisoformat('2020-12-31')
+endDate = dt.fromisoformat('2019-12-31')
+generatePartOneStats(startDate, endDate)
 
-returnsData = daily[startDate: endDate]
-trendsData = pd.read_pickle('./AmazonTrendsWorldwide.pkl')
-trendsData['Trends'] = pd.to_numeric(trendsData['Trends'])
-trendsData = trendsData[startDate: endDate]
-facemaskTrendsData = pd.read_pickle('./AmazonTrendsMaskWorldwide.pkl')
-facemaskTrendsData['Trends'] = pd.to_numeric(facemaskTrendsData['Trends'])
-facemaskTrendsData = facemaskTrendsData[startDate: endDate]
+# startDate = dt.fromisoformat('2019-01-01')
+# endDate = dt.fromisoformat('2020-12-31')
 
-returnsTrendsFig = make_subplots(specs=[[{"secondary_y": True}]])
-returnsTrendsFig.add_trace(
-    go.Scatter(x=returnsData.index, y=returnsData['Adj Close'], mode='lines', name='AMZN Price (USD)'),
-    secondary_y=False
-)
-returnsTrendsFig.add_trace(
-    go.Scatter(x=trendsData.index, y=trendsData['Trends'], mode='lines', name='Amazon Google Trends'),
-    secondary_y=True
-)
-returnsTrendsFig.add_trace(
-    go.Scatter(x=facemaskTrendsData.index, y=facemaskTrendsData['Trends'], mode='lines', name='Amazon facemasks Google Trends'),
-    secondary_y=True
-)
-returnsTrendsFig.show()
+# returnsData = daily[startDate: endDate]
+# trendsData = pd.read_pickle('./AmazonTrendsWorldwide.pkl')
+# trendsData['Trends'] = pd.to_numeric(trendsData['Trends'])
+# trendsData = trendsData[startDate: endDate]
+# facemaskTrendsData = pd.read_pickle('./AmazonTrendsMaskWorldwide.pkl')
+# facemaskTrendsData['Trends'] = pd.to_numeric(facemaskTrendsData['Trends'])
+# facemaskTrendsData = facemaskTrendsData[startDate: endDate]
 
-# QQplot of the daily returns against a theoretical normal distribution
-print(daily['Daily Return'])
-stats.probplot(daily['Daily Return'], dist='norm', plot=pylab)
-pylab.show()
-
+# returnsTrendsFig = make_subplots(specs=[[{"secondary_y": True}]])
+# returnsTrendsFig.add_trace(
+#     go.Scatter(x=returnsData.index, y=returnsData['Adj Close'], mode='lines', name='AMZN Price (USD)'),
+#     secondary_y=False
+# )
+# returnsTrendsFig.add_trace(
+#     go.Scatter(x=trendsData.index, y=trendsData['Trends'], mode='lines', name='Amazon Google Trends'),
+#     secondary_y=True
+# )
+# returnsTrendsFig.add_trace(
+#     go.Scatter(x=facemaskTrendsData.index, y=facemaskTrendsData['Trends'], mode='lines', name='Amazon facemasks Google Trends'),
+#     secondary_y=True
+# )
+# returnsTrendsFig.show()

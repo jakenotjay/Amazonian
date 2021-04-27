@@ -270,7 +270,9 @@ def predictFuturePrice(returns, startDate, endDate, deltaT, confidenceInterval =
     uncertainty = volatility * np.sqrt(deltaT) * lastDayPrice * confidenceInterval
 
     print('For annual drift of ', drift, 'and volatility', volatility)
+    print('At a starting price of', lastDayPrice)
     print('The change in stock price is ', deltaS, '+-', uncertainty, 'within', confidenceInterval, 'confidence intervals')
+    print('The predicted stock price is', lastDayPrice + deltaS, '+-', uncertainty, 'within', confidenceInterval, 'confidence intervals')
     print('This gives a range of', (lastDayPrice + deltaS) - uncertainty, 'to', (lastDayPrice + deltaS) + uncertainty)
     return deltaS, uncertainty
 
@@ -301,8 +303,8 @@ def generatePartOneStats(startDate, endDate):
     # invest principal of 1 mil over same time period
     calcInvestmentStats(1000000, startDate, endDate)
 
-startDate = dt.fromisoformat('2019-01-01')
-endDate = dt.fromisoformat('2019-12-31')
+startDate = dt.fromisoformat('2020-01-01')
+endDate = dt.fromisoformat('2020-12-31')
 generatePartOneStats(startDate, endDate)
 
 # startDate = dt.fromisoformat('2019-01-01')

@@ -82,6 +82,7 @@ def normalDistributionFunction(mean, std, returnValue):
 
 def calcVolatility(returns, deltaT):
     std = np.std(returns)
+    print('delta t for volatility', deltaT)
     volatility = (1/np.power(deltaT, 0.5)) * std
     print('volatility calculated as', volatility)
     return volatility
@@ -135,7 +136,6 @@ def calcSavingsInvestment(principal, startDate, endDate):
 # YYYY-MM-DD format
 def calcInvestmentStats(principal, startDate, endDate):
     timePeriodData = daily[startDate: endDate]
-    plotReturns(timePeriodData)
 
     print('With an initial investment of', principal, 'dollars')
     print('Starting from date', startDate, 'to', endDate)

@@ -39,6 +39,17 @@ def dailyReturns():
 
     daily['Daily Return'] = dailyReturns
 
+def logDailyReturns():
+    logDailyReturns = []
+    logDailyReturns.append(0)
+    for i in range(1, len(daily)):
+        ydayClosingValue = float(daily['Adj Close'][i-1])
+        tdayClosingValue = float(daily['Adj Close'][i])
+        logDailyReturn = np.log(tdayClosingValue/ydayClosingValue)
+        logDailyReturns.append(logDailyReturn)
+    
+    daily['Log Daily Return'] = logDailyReturns
+
 def weeklyReturns():
     weeklyReturns = []
     weeklyReturns.append(0)
@@ -276,6 +287,60 @@ def predictFuturePrice(returns, startDate, endDate, deltaT, confidenceInterval =
     print('This gives a range of', (lastDayPrice + deltaS) - uncertainty, 'to', (lastDayPrice + deltaS) + uncertainty)
     return deltaS, uncertainty
 
+def calcLogVolatility(logReturns, startDate, endDate):
+    T = findTimeDifferenceInYears(startDate, endDate)
+    S = np.std(logReturns)
+    volatility = S/np.sqrt(T)
+    print('calculated volatility', volatility, 'over', T, 'years')
+    print('exponential volatility', np.exp(volatility))
+    return volatility
+
+def calcLogDrift(logReturns, volatility, startDate, endDate):
+    T = findTimeDifferenceInYears(startDate, endDate)
+    meanLogReturns = np.mean(logReturns)
+    drift = (meanLogReturns/T) + ((volatility ** 2 )/ 2)
+    print('calculated drift', drift, 'over', T, 'years')
+    print('expoential drift', np.exp(drift))
+    return drift
+
+def predictFuturePriceAsLog(logReturns, startDate, endDate, deltaT, confidenceInterval = 2):
+    lastDayPrice = daily[startDate: endDate]['Adj Close'][-1]
+    volatility = calcLogVolatility(logReturns.values, startDate, endDate)
+    drift = calcLogDrift(logReturns.values, volatility, startDate, endDate)
+    
+    lnS = (drift - ((volatility ** 2) / 2)) * deltaT + np.log(lastDayPrice)
+    lnUncertainty = volatility * confidenceInterval * np.sqrt(deltaT)
+    
+    lnLowerValue = lnS - lnUncertainty
+    lnUpperValue = lnS + lnUncertainty
+    print('starting at ', lastDayPrice)
+    print('the predicted range is', np.exp(lnLowerValue), 'to', np.exp(lnUpperValue))
+    
+    
+    # print("Future stock price in", deltaT, "year(s) predicted as")
+    # print(S, '+-', uncertainty)
+    # print("This gives the range", S-uncertainty, "to", S+uncertainty)
+    # return S, uncertainty
+
+def calcLogNormalDistribution(logReturns, nPts):
+    mean = np.mean(logReturns)
+    std = np.std(logReturns)
+    maxLogReturn = np.max(logReturns)
+    minLogReturn = np.min(logReturns)
+    
+    logReturnRange = np.linspace(minLogReturn, maxLogReturn, num=nPts)
+    logNormDist = np.zeros(len(logReturnRange))
+    for i in range(len(logReturnRange)):
+        logNormDist[i] = logNormalDistributionFunction(mean, std, logReturnRange[i])
+        
+    return logNormDist, logReturnRange
+    
+def logNormalDistributionFunction(mean, std, logReturn):
+    constTerm = 1/(np.sqrt(2 * np.pi) * std)
+    returnMinusMean = (logReturn - mean) ** 2 
+    negativeOneOverTwoSSquared = - 1 / (2 * (std ** 2))
+    return constTerm * np.exp(negativeOneOverTwoSSquared * returnMinusMean)
+
 def generatePartOneStats(startDate, endDate):
     print('Generating part one stats between', startDate,'and', endDate)
     dailyReturns()
@@ -303,9 +368,36 @@ def generatePartOneStats(startDate, endDate):
     # invest principal of 1 mil over same time period
     calcInvestmentStats(1000000, startDate, endDate)
 
-startDate = dt.fromisoformat('2020-01-01')
-endDate = dt.fromisoformat('2020-12-31')
-generatePartOneStats(startDate, endDate)
+def generatePartTwoStats(startDate, endDate):
+    ## Part Two Stats
+    # generate log normal distribution stuff
+    # obtain drift
+    # obtain volatility
+    logDailyReturns()
+    logReturns = daily[startDate:endDate]['Log Daily Return']
+    
+    fig = px.histogram(daily[startDate:endDate], x="Log Daily Return")
+    fig.show()
+    
+    volatility = calcLogVolatility(logReturns.values, startDate, endDate)
+    drift = calcLogDrift(logReturns.values, volatility, startDate, endDate)
+    print('calculated log drift', drift)
+    print('calculated log volatility', volatility)
+
+    # S, uncertainty = predictFuturePriceAsLog(logReturns, startDate, endDate, 0.25, 2)
+    predictFuturePriceAsLog(logReturns, startDate, endDate, 1, 2)
+    
+    logNormDist, logReturnRange = calcLogNormalDistribution(logReturns.values, 1000)
+    produceNormDistFig(logReturns.values, logReturnRange, logNormDist)
+
+    # using volatility either from part 1 or 2 create a 2-step binomial tree model:
+    # create a fair price of a 2 month european long call option
+    # create a fair price of a 2 month european long put option
+
+startDate = dt.fromisoformat('2019-01-01')
+endDate = dt.fromisoformat('2019-12-31')
+# generatePartOneStats(startDate, endDate)
+generatePartTwoStats(startDate, endDate)
 
 # startDate = dt.fromisoformat('2019-01-01')
 # endDate = dt.fromisoformat('2020-12-31')

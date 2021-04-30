@@ -9,22 +9,22 @@ import scipy.stats as stats
 from functools import reduce
 import matplotlib.pyplot as plt
 
-stockname = 'AMZN'
+stockname = 'AAPL'
 
 daily = pd.read_pickle('./'+stockname+'daily.pkl')
-weekly = pd.read_pickle('./'+stockname+'weekly.pkl')
-monthly = pd.read_pickle('./'+stockname+'monthly.pkl')
+# weekly = pd.read_pickle('./'+stockname+'weekly.pkl')
+# monthly = pd.read_pickle('./'+stockname+'monthly.pkl')
 
-daily['Dates'] = pd.to_datetime(daily['Dates'])
-daily = daily.set_index('Dates')
-weekly['Dates'] = pd.to_datetime(weekly['Dates'])
-weekly = weekly.set_index('Dates')
-monthly['Dates'] = pd.to_datetime(monthly['Dates'])
-monthly = monthly.set_index('Dates')
+# daily['Dates'] = pd.to_datetime(daily['Dates'])
+# daily = daily.set_index('Dates')
+# weekly['Dates'] = pd.to_datetime(weekly['Dates'])
+# weekly = weekly.set_index('Dates')
+# monthly['Dates'] = pd.to_datetime(monthly['Dates'])
+# monthly = monthly.set_index('Dates')
 
 daily['Adj Close'] = pd.to_numeric(daily['Adj Close'])
-weekly['Adj Close'] = pd.to_numeric(weekly['Adj Close'])
-monthly['Adj Close'] = pd.to_numeric(monthly['Adj Close'])
+# weekly['Adj Close'] = pd.to_numeric(weekly['Adj Close'])
+# monthly['Adj Close'] = pd.to_numeric(monthly['Adj Close'])
 
 
 def dailyReturns():
@@ -93,8 +93,9 @@ def normalDistributionFunction(mean, std, returnValue):
 
 def calcVolatility(returns, deltaT):
     std = np.std(returns)
+    print('std calculated as', std)
     print('delta t for volatility', deltaT)
-    volatility = (1/np.power(deltaT, 0.5)) * std
+    volatility = (1/np.sqrt(deltaT)) * std
     print('volatility calculated as', volatility)
     return volatility
 
@@ -276,7 +277,7 @@ def predictFuturePrice(returns, startDate, endDate, deltaT, confidenceInterval =
 
     deltaS = drift * lastDayPrice * deltaT
 
-    volatility = calcVolatility(returns, findTimeDifferenceInYears(startDate, endDate))
+    volatility = calcVolatility(returns, deltaT)
 
     uncertainty = volatility * np.sqrt(deltaT) * lastDayPrice * confidenceInterval
 
@@ -287,26 +288,22 @@ def predictFuturePrice(returns, startDate, endDate, deltaT, confidenceInterval =
     print('This gives a range of', (lastDayPrice + deltaS) - uncertainty, 'to', (lastDayPrice + deltaS) + uncertainty)
     return deltaS, uncertainty
 
-def calcLogVolatility(logReturns, startDate, endDate):
-    T = findTimeDifferenceInYears(startDate, endDate)
+def calcLogVolatility(logReturns, samplingRate):
     S = np.std(logReturns)
-    volatility = S/np.sqrt(T)
-    print('calculated volatility', volatility, 'over', T, 'years')
-    print('exponential volatility', np.exp(volatility))
+    volatility = S/np.sqrt(samplingRate)
+    print('calculated volatility', volatility, 'over', samplingRate, 'samplingRate')
     return volatility
 
-def calcLogDrift(logReturns, volatility, startDate, endDate):
-    T = findTimeDifferenceInYears(startDate, endDate)
+def calcLogDrift(logReturns, volatility, samplingRate):
     meanLogReturns = np.mean(logReturns)
-    drift = (meanLogReturns/T) + ((volatility ** 2 )/ 2)
-    print('calculated drift', drift, 'over', T, 'years')
-    print('expoential drift', np.exp(drift))
+    drift = (meanLogReturns/samplingRate) + ((volatility ** 2 )/ 2)
+    print('calculated drift', drift, 'over', samplingRate, 'samplingRate')
     return drift
 
-def predictFuturePriceAsLog(logReturns, startDate, endDate, deltaT, confidenceInterval = 2):
+def predictFuturePriceAsLog(logReturns, startDate, endDate, deltaT, samplingRate, confidenceInterval = 2):
     lastDayPrice = daily[startDate: endDate]['Adj Close'][-1]
-    volatility = calcLogVolatility(logReturns.values, startDate, endDate)
-    drift = calcLogDrift(logReturns.values, volatility, startDate, endDate)
+    volatility = calcLogVolatility(logReturns.values, samplingRate)
+    drift = calcLogDrift(logReturns.values, volatility, samplingRate)
     
     lnS = (drift - ((volatility ** 2) / 2)) * deltaT + np.log(lastDayPrice)
     lnUncertainty = volatility * confidenceInterval * np.sqrt(deltaT)
@@ -315,12 +312,6 @@ def predictFuturePriceAsLog(logReturns, startDate, endDate, deltaT, confidenceIn
     lnUpperValue = lnS + lnUncertainty
     print('starting at ', lastDayPrice)
     print('the predicted range is', np.exp(lnLowerValue), 'to', np.exp(lnUpperValue))
-    
-    
-    # print("Future stock price in", deltaT, "year(s) predicted as")
-    # print(S, '+-', uncertainty)
-    # print("This gives the range", S-uncertainty, "to", S+uncertainty)
-    # return S, uncertainty
 
 def calcLogNormalDistribution(logReturns, nPts):
     mean = np.mean(logReturns)
@@ -340,6 +331,31 @@ def logNormalDistributionFunction(mean, std, logReturn):
     returnMinusMean = (logReturn - mean) ** 2 
     negativeOneOverTwoSSquared = - 1 / (2 * (std ** 2))
     return constTerm * np.exp(negativeOneOverTwoSSquared * returnMinusMean)
+
+def produceLogNormDistFig(logReturns, logReturnRange, logNormDist):
+    normDistFig = make_subplots(specs=[[{"secondary_y": True}]])
+    normDistFig.add_trace(
+        go.Histogram(x=logReturns, name="Histogram of daily log returns"), 
+        secondary_y=False,
+        )
+    normDistFig.add_trace(
+        go.Scatter(x=logReturnRange,y=logNormDist, mode='lines', name="Normal distribution of daily log returns"), 
+        secondary_y=True
+        )
+
+    # Add figure title
+    normDistFig.update_layout(
+        title_text="Daily logReturns histogram and normal distribution of daily log returns"
+    )
+
+    # Set x-axis title
+    normDistFig.update_xaxes(title_text="Daily log returns")
+
+    # Set y-axes titles
+    normDistFig.update_yaxes(title_text="<b>Count</b> of log return", secondary_y=False)
+    normDistFig.update_yaxes(title_text="<b>Probability</b> of log return", secondary_y=True)
+
+    normDistFig.show()
 
 def generatePartOneStats(startDate, endDate):
     print('Generating part one stats between', startDate,'and', endDate)
@@ -362,7 +378,7 @@ def generatePartOneStats(startDate, endDate):
     produceQQplot(returns)
 
     # time in years to predict to    
-    predictionTime = 1
+    predictionTime = 0.25
     deltaS, uncertainty = predictFuturePrice(returnsFrac, startDate, endDate, predictionTime, confidenceInterval = 2)
 
     # invest principal of 1 mil over same time period
@@ -379,24 +395,27 @@ def generatePartTwoStats(startDate, endDate):
     fig = px.histogram(daily[startDate:endDate], x="Log Daily Return")
     fig.show()
     
-    volatility = calcLogVolatility(logReturns.values, startDate, endDate)
-    drift = calcLogDrift(logReturns.values, volatility, startDate, endDate)
+    samplingRate = 1/252
+    
+    volatility = calcLogVolatility(logReturns.values, samplingRate)
+    drift = calcLogDrift(logReturns.values, volatility, samplingRate)
     print('calculated log drift', drift)
     print('calculated log volatility', volatility)
 
     # S, uncertainty = predictFuturePriceAsLog(logReturns, startDate, endDate, 0.25, 2)
-    predictFuturePriceAsLog(logReturns, startDate, endDate, 1, 2)
+    predictionTime = 0.25
+    predictFuturePriceAsLog(logReturns, startDate, endDate, predictionTime, samplingRate, 2)
     
     logNormDist, logReturnRange = calcLogNormalDistribution(logReturns.values, 1000)
-    produceNormDistFig(logReturns.values, logReturnRange, logNormDist)
+    produceLogNormDistFig(logReturns.values, logReturnRange, logNormDist)
 
     # using volatility either from part 1 or 2 create a 2-step binomial tree model:
     # create a fair price of a 2 month european long call option
     # create a fair price of a 2 month european long put option
 
-startDate = dt.fromisoformat('2019-01-01')
+startDate = dt.fromisoformat('2005-01-01')
 endDate = dt.fromisoformat('2019-12-31')
-# generatePartOneStats(startDate, endDate)
+generatePartOneStats(startDate, endDate)
 generatePartTwoStats(startDate, endDate)
 
 # startDate = dt.fromisoformat('2019-01-01')

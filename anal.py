@@ -6,7 +6,6 @@ from plotly.subplots import make_subplots
 from datetime import date as dt
 import pylab
 import scipy.stats as stats
-from functools import reduce
 import matplotlib.pyplot as plt
 
 stockname = 'AMZN'
@@ -538,29 +537,3 @@ startDate = dt.fromisoformat('2015-01-01')
 endDate = dt.fromisoformat('2020-12-31')
 generatePartOneStats(startDate, endDate)
 generatePartTwoStats(startDate, endDate)
-
-# startDate = dt.fromisoformat('2019-01-01')
-# endDate = dt.fromisoformat('2020-12-31')
-
-# returnsData = daily[startDate: endDate]
-# trendsData = pd.read_pickle('./AmazonTrendsWorldwide.pkl')
-# trendsData['Trends'] = pd.to_numeric(trendsData['Trends'])
-# trendsData = trendsData[startDate: endDate]
-# facemaskTrendsData = pd.read_pickle('./AmazonTrendsMaskWorldwide.pkl')
-# facemaskTrendsData['Trends'] = pd.to_numeric(facemaskTrendsData['Trends'])
-# facemaskTrendsData = facemaskTrendsData[startDate: endDate]
-
-# returnsTrendsFig = make_subplots(specs=[[{"secondary_y": True}]])
-# returnsTrendsFig.add_trace(
-#     go.Scatter(x=returnsData.index, y=returnsData['Adj Close'], mode='lines', name='AMZN Price (USD)'),
-#     secondary_y=False
-# )
-# returnsTrendsFig.add_trace(
-#     go.Scatter(x=trendsData.index, y=trendsData['Trends'], mode='lines', name='Amazon Google Trends'),
-#     secondary_y=True
-# )
-# returnsTrendsFig.add_trace(
-#     go.Scatter(x=facemaskTrendsData.index, y=facemaskTrendsData['Trends'], mode='lines', name='Amazon facemasks Google Trends'),
-#     secondary_y=True
-# )
-# returnsTrendsFig.show()

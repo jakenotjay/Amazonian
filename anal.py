@@ -9,22 +9,22 @@ import scipy.stats as stats
 from functools import reduce
 import matplotlib.pyplot as plt
 
-stockname = 'AAPL'
+stockname = 'AMZN'
 
 daily = pd.read_pickle('./'+stockname+'daily.pkl')
-# weekly = pd.read_pickle('./'+stockname+'weekly.pkl')
-# monthly = pd.read_pickle('./'+stockname+'monthly.pkl')
+weekly = pd.read_pickle('./'+stockname+'weekly.pkl')
+monthly = pd.read_pickle('./'+stockname+'monthly.pkl')
 
-# daily['Dates'] = pd.to_datetime(daily['Dates'])
-# daily = daily.set_index('Dates')
-# weekly['Dates'] = pd.to_datetime(weekly['Dates'])
-# weekly = weekly.set_index('Dates')
-# monthly['Dates'] = pd.to_datetime(monthly['Dates'])
-# monthly = monthly.set_index('Dates')
+daily['Dates'] = pd.to_datetime(daily['Dates'])
+daily = daily.set_index('Dates')
+weekly['Dates'] = pd.to_datetime(weekly['Dates'])
+weekly = weekly.set_index('Dates')
+monthly['Dates'] = pd.to_datetime(monthly['Dates'])
+monthly = monthly.set_index('Dates')
 
 daily['Adj Close'] = pd.to_numeric(daily['Adj Close'])
-# weekly['Adj Close'] = pd.to_numeric(weekly['Adj Close'])
-# monthly['Adj Close'] = pd.to_numeric(monthly['Adj Close'])
+weekly['Adj Close'] = pd.to_numeric(weekly['Adj Close'])
+monthly['Adj Close'] = pd.to_numeric(monthly['Adj Close'])
 
 
 def dailyReturns():
@@ -99,18 +99,6 @@ def calcVolatility(returns, deltaT):
     print('volatility calculated as', volatility)
     return volatility
 
-# incorrect code
-def calcDriftFrac(startPrice, endPrice):
-    driftFraction = ((endPrice - startPrice)/startPrice)
-    print('drift fraction calculated as', driftFraction)
-    return driftFraction
-
-# incorrect code
-def calcDriftPercentage(startPrice, endPrice):
-    driftPercentage = calcDriftFrac(startPrice, endPrice) * 100
-    print('drift percentage calculated as', driftPercentage)
-    return driftPercentage
-
 def plotReturns(df):
     # Adjusted close price every day
     priceFig = go.Figure(data=go.Scatter(x=df.index, y=df['Adj Close'], mode='lines'))
@@ -136,7 +124,7 @@ def calcSavingsInvestment(principal, startDate, endDate):
     time = findTimeDifferenceInYears(startDate, endDate)
     print('time difference is', time)
     interestRate = interestRates['Rates'].mean() / 100
-    # print('calculated interest rate is', interestRate)
+    print('calculated mean interest rate is', interestRate)
 
     totalReturn = calcContinuousCompoundInterest(principal, interestRate, time)
     roi = totalReturn - principal
@@ -322,7 +310,7 @@ def calcLogNormalDistribution(logReturns, nPts):
     logReturnRange = np.linspace(minLogReturn, maxLogReturn, num=nPts)
     logNormDist = np.zeros(len(logReturnRange))
     for i in range(len(logReturnRange)):
-        logNormDist[i] = logNormalDistributionFunction(mean, std, logReturnRange[i])
+        logNormDist[i] = logNormalDistributionFunction(mean, std, logReturnRange[i])/100
         
     return logNormDist, logReturnRange
     
@@ -345,7 +333,7 @@ def produceLogNormDistFig(logReturns, logReturnRange, logNormDist):
 
     # Add figure title
     normDistFig.update_layout(
-        title_text="Daily logReturns histogram and normal distribution of daily log returns"
+        title_text="Daily log returns histogram and normal distribution of daily log returns"
     )
 
     # Set x-axis title
@@ -358,10 +346,10 @@ def produceLogNormDistFig(logReturns, logReturnRange, logNormDist):
     normDistFig.show()
 
 def generatePartOneStats(startDate, endDate):
+    print('------------------------------------------------------------')
     print('Generating part one stats between', startDate,'and', endDate)
+    print('------------------------------------------------------------')
     dailyReturns()
-    # weeklyReturns()
-    # monthlyReturns()
 
     # find returns in given time period
     returns = daily[startDate:endDate]['Daily Return']
@@ -378,19 +366,27 @@ def generatePartOneStats(startDate, endDate):
     produceQQplot(returns)
 
     # time in years to predict to    
-    predictionTime = 0.25
+    predictionTime = 1
     deltaS, uncertainty = predictFuturePrice(returnsFrac, startDate, endDate, predictionTime, confidenceInterval = 2)
 
     # invest principal of 1 mil over same time period
     calcInvestmentStats(1000000, startDate, endDate)
+    print('------------------------------------------------------------')
+    print('END OF PART ONE STATS')
+    print('------------------------------------------------------------')
+    print('')
 
 def generatePartTwoStats(startDate, endDate):
+    print('------------------------------------------------------------')
+    print('Generating part two stats between', startDate,'and', endDate)
+    print('------------------------------------------------------------')
     ## Part Two Stats
     # generate log normal distribution stuff
     # obtain drift
     # obtain volatility
     logDailyReturns()
     logReturns = daily[startDate:endDate]['Log Daily Return']
+    produceQQplot(logReturns.values)
     
     fig = px.histogram(daily[startDate:endDate], x="Log Daily Return")
     fig.show()
@@ -405,16 +401,25 @@ def generatePartTwoStats(startDate, endDate):
     # S, uncertainty = predictFuturePriceAsLog(logReturns, startDate, endDate, 0.25, 2)
     predictionTime = 0.25
     predictFuturePriceAsLog(logReturns, startDate, endDate, predictionTime, samplingRate, 2)
-    
+    predictionTime = 0.5
+    predictFuturePriceAsLog(logReturns, startDate, endDate, predictionTime, samplingRate, 2)
+    predictionTime = 1
+    predictFuturePriceAsLog(logReturns, startDate, endDate, predictionTime, samplingRate, 2)
+
+
     logNormDist, logReturnRange = calcLogNormalDistribution(logReturns.values, 1000)
     produceLogNormDistFig(logReturns.values, logReturnRange, logNormDist)
 
     # using volatility either from part 1 or 2 create a 2-step binomial tree model:
     # create a fair price of a 2 month european long call option
     # create a fair price of a 2 month european long put option
+    print('------------------------------------------------------------')
+    print('END OF PART TWO STATS')
+    print('------------------------------------------------------------')
+    print('')
 
-startDate = dt.fromisoformat('2005-01-01')
-endDate = dt.fromisoformat('2019-12-31')
+startDate = dt.fromisoformat('2015-01-01')
+endDate = dt.fromisoformat('2020-12-31')
 generatePartOneStats(startDate, endDate)
 generatePartTwoStats(startDate, endDate)
 

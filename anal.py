@@ -344,7 +344,150 @@ def produceLogNormDistFig(logReturns, logReturnRange, logNormDist):
     normDistFig.update_yaxes(title_text="<b>Probability</b> of log return", secondary_y=True)
 
     normDistFig.show()
+    
+def longCallFunc(stockPrice, exercisePrice):
+    return max([(stockPrice - exercisePrice), 0])
 
+def longPutFunc(stockPrice, exercisePrice):
+    return max([(exercisePrice - stockPrice), 0])
+
+def plotLongCallStats(startPrice, maxPrice, optionPrice, exercisePrice, nPts=1000):
+    priceRange = np.linspace(startPrice, maxPrice, num = nPts)
+    profitsBeforeOption = np.zeros(len(priceRange))
+    for i in range(len(priceRange)):
+        profitsBeforeOption[i] = longCallFunc(priceRange[i], exercisePrice)
+        
+    profits = profitsBeforeOption - optionPrice
+    
+    longCallProfitFig = go.Figure()
+    longCallProfitFig.add_trace(
+        go.Scatter(x=priceRange, y=profitsBeforeOption, mode='lines', name="Profits before option (update title)")
+    )
+    longCallProfitFig.add_trace(
+        go.Scatter(x=priceRange, y=profits, mode='lines', name="Profits after option cost (Change name)")
+    )
+    
+    longCallProfitFig.update_xaxes(title_text="Stock Price")
+
+    # Set y-axes titles
+    longCallProfitFig.update_yaxes(title_text="Profit/Loss")
+    longCallProfitFig.show()
+        
+def plotLongPutStats(startPrice, minPrice, optionPrice, exercisePrice, nPts=1000):
+    priceRange = np.linspace(minPrice, startPrice, num = nPts)
+    profitsBeforeOption = np.zeros(len(priceRange))
+    for i in range(len(priceRange)):
+        profitsBeforeOption[i] = longPutFunc(priceRange[i], exercisePrice)
+        
+    profits = profitsBeforeOption - optionPrice
+    
+    longPutProfitFig = go.Figure()
+    longPutProfitFig.add_trace(
+        go.Scatter(x=priceRange, y=profitsBeforeOption, mode='lines', name="Profits before option (update title)")
+    )
+    longPutProfitFig.add_trace(
+        go.Scatter(x=priceRange, y=profits, mode='lines', name="Profits after option cost (Change name)")
+    )
+    
+    longPutProfitFig.update_xaxes(title_text="Stock Price")
+
+    # Set y-axes titles
+    longPutProfitFig.update_yaxes(title_text="Profit/Loss")
+    longPutProfitFig.show()
+    
+def calculateLongCallStats(APrice, BPrice, CPrice, DPrice, EPrice, FPrice, interestRate, deltaT, p, drift):
+    print('-------------------------------------------------------')
+    print('--------------calculating long call stats--------------')
+    print('-------------------------------------------------------')
+    
+    # will need to be updated 
+    strikePrice = ((drift * (2 * deltaT)) + 1) * APrice
+    
+    print('using drift', drift)
+    print('strike price calculated to be', strikePrice)
+    
+    FPayOff = max([(FPrice - strikePrice), 0])
+    EPayOff = max([(EPrice - strikePrice), 0])
+    DPayOff = max([(DPrice - strikePrice), 0])
+    
+    print('Pay off at D predicted to be,', DPayOff)
+    print('Pay off at E predicted to be,', EPayOff)
+    print('Pay off at F predicted to be,', FPayOff)
+    
+    BOptionPrice = np.exp(-interestRate * deltaT) * (p * DPayOff + (1-p)*EPayOff)
+    COptionPrice = np.exp(-interestRate * deltaT) * (p * EPayOff + (1-p)*FPayOff)
+    
+    print('option price at B predicted to be', BOptionPrice)
+    print('option price at C predicted to be', COptionPrice)
+    
+    optionPrice = np.exp(-interestRate * deltaT) * (p * BOptionPrice + (1-p)*COptionPrice)
+    print('calculated option price to be ', optionPrice)
+    plotLongCallStats(APrice, DPrice, optionPrice, strikePrice)
+
+def calculateLongPutStats(APrice, BPrice, CPrice, DPrice, EPrice, FPrice, interestRate, deltaT, p, drift):
+    print('-------------------------------------------------------')
+    print('--------------calculating long put stats---------------')
+    print('-------------------------------------------------------')
+    
+    # strike price needs to be updated
+    strikePrice = (1 - (drift * (2 * deltaT))) * APrice
+    
+    print('using drift', drift)
+    print('strike price calculated to be', strikePrice)
+    
+    FPayOff = max([(strikePrice - FPrice), 0])
+    EPayOff = max([(strikePrice - EPrice), 0])
+    DPayOff = max([(strikePrice - DPrice), 0])
+    
+    print('Pay off at D predicted to be,', DPayOff)
+    print('Pay off at E predicted to be,', EPayOff)
+    print('Pay off at F predicted to be,', FPayOff)
+    
+    BOptionPrice = np.exp(-interestRate * deltaT) * (p * DPayOff + (1-p)*EPayOff)
+    COptionPrice = np.exp(-interestRate * deltaT) * (p * EPayOff + (1-p)*FPayOff)
+    
+    print('option price at B predicted to be', BOptionPrice)
+    print('option price at C predicted to be', COptionPrice)
+    
+    optionPrice = np.exp(-interestRate * deltaT) * (p * BOptionPrice + (1-p)*COptionPrice)
+    print('calculated option price to be ', optionPrice)
+    plotLongPutStats(APrice, FPrice, optionPrice, strikePrice)
+
+def binomialTreesCalculations(startDate, endDate, volatility, deltaT, drift):
+    print('-------------------------------------------------------')
+    print('-----------calculating binomial tree stats-------------')
+    print('-------------------------------------------------------')
+    
+    u = np.exp(volatility * np.sqrt(deltaT))
+    d = np.exp(-volatility * np.sqrt(deltaT))
+    
+    interestRates = pd.read_pickle('./interestRates.pkl')
+    interestRates = interestRates[startDate: endDate]
+    interestRate = interestRates['Rates'].mean() / 100
+    
+    p = (np.exp(interestRate * deltaT) - d) / (u - d)
+    print('using volatility', volatility, 'and calculated interest rate', interestRate)
+    print('p calculated to be:', p)
+    print('u calcuated to be:', u)
+    print('d calculated to be\n', d)
+    
+    APrice = daily[startDate: endDate]['Adj Close'][-1]
+    BPrice = APrice * u
+    CPrice = APrice * d
+    DPrice = BPrice * u
+    EPrice = BPrice * d
+    FPrice = CPrice * d
+    
+    print('Stock at A predicted to be', APrice)
+    print('Stock at B predicted to be', BPrice)
+    print('Stock at C predicted to be', CPrice)
+    print('Stock at D predicted to be', DPrice)
+    print('Stock at E predicted to be', EPrice)
+    print('Stock at F predicted to be', FPrice)
+    
+    calculateLongCallStats(APrice, BPrice, CPrice, DPrice, EPrice, FPrice, interestRate, deltaT, p, drift)
+    calculateLongPutStats(APrice, BPrice, CPrice, DPrice, EPrice, FPrice, interestRate, deltaT, p, drift)
+    
 def generatePartOneStats(startDate, endDate):
     print('------------------------------------------------------------')
     print('Generating part one stats between', startDate,'and', endDate)
@@ -412,6 +555,11 @@ def generatePartTwoStats(startDate, endDate):
 
     # using volatility either from part 1 or 2 create a 2-step binomial tree model:
     # create a fair price of a 2 month european long call option
+    # binomial trees function uses deltaT twice as there are two-steps so Total T = 2 * deltaT
+    dailyClose = daily[startDate: endDate]['Adj Close'].values
+    drift = calcAnnualDrift(dailyClose)
+    deltaT = 1/12
+    binomialTreesCalculations(startDate, endDate, volatility, deltaT, drift)
     # create a fair price of a 2 month european long put option
     print('------------------------------------------------------------')
     print('END OF PART TWO STATS')

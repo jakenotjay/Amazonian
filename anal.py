@@ -178,38 +178,6 @@ def calcInvestmentStats(principal, startDate, endDate):
     print('Savings totals - ', savingsTotals, 'dollars')
     print('ROI for savings would be - ', savingsRoi, 'dollars')
     print('ROI percentage for savings would be - ', savingsRoiPerc, '%')
-
-def normaliseData(returns):
-    years = np.unique(returns.index.year)
-    # print('years',years)
-    # print('dtype', years.dtype)
-    nYears = len(years)
-    normalisedData = []
-    for i in range(nYears):
-        yearlyAdjClose = returns[returns.index.year == years[i]]['Adj Close']
-        maxValue = np.max(yearlyAdjClose)
-        normalisedYearly = yearlyAdjClose / maxValue
-        for normValue in normalisedYearly.values:
-            normalisedData.append(normValue)
-    
-    returns['Normalised Adj Close'] = normalisedData
-    # print('normalised adj close', returns['Normalised Adj Close'])
-    # print('adj close', returns['Adj Close'])
-
-    # normalisedPlot = go.Figure()
-    # normalisedPlot.add_trace(go.Scatter(x=returns.index[returns.index.year == 2015], y=returns[returns.index.year == 2015]['Normalised Adj Close'], mode='lines'))
-    # normalisedPlot.add_trace(go.Scatter(x=returns.index[returns.index.year == 2016], y=returns[returns.index.year == 2016]['Normalised Adj Close'], mode='lines'))
-    # normalisedPlot.add_trace(go.Scatter(x=returns.index[returns.index.year == 2017], y=returns[returns.index.year == 2017]['Normalised Adj Close'], mode='lines'))
-    # normalisedPlot.add_trace(go.Scatter(x=returns.index[returns.index.year == 2018], y=returns[returns.index.year == 2018]['Normalised Adj Close'], mode='lines'))
-    # normalisedPlot.add_trace(go.Scatter(x=returns.index[returns.index.year == 2019], y=returns[returns.index.year == 2019]['Normalised Adj Close'], mode='lines'))
-    # normalisedPlot.show()
-    
-    dates = []
-    avgAdjClose = []
-
-    returns['MM-DD'] = returns.index.strftime('%m-%d')
-    commonDates = reduce(np.intersect1d, (returns[returns.index.year == 2015]['MM-DD'].values, returns[returns.index.year == 2016]['MM-DD'].values, returns[returns.index.year == 2017]['MM-DD'].values, returns[returns.index.year == 2018]['MM-DD'].values, returns[returns.index.year == 2019]['MM-DD'].values))
-    print(commonDates)
     
 def produceNormDistFig(returns, returnRange, normalDistribution):
     normDistFig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -469,7 +437,7 @@ def binomialTreesCalculations(startDate, endDate, volatility, deltaT, drift):
     print('using volatility', volatility, 'and calculated interest rate', interestRate)
     print('p calculated to be:', p)
     print('u calcuated to be:', u)
-    print('d calculated to be\n', d)
+    print('d calculated to be', d)
     
     APrice = daily[startDate: endDate]['Adj Close'][-1]
     BPrice = APrice * u
@@ -478,7 +446,7 @@ def binomialTreesCalculations(startDate, endDate, volatility, deltaT, drift):
     EPrice = BPrice * d
     FPrice = CPrice * d
     
-    print('Stock at A predicted to be', APrice)
+    print('\nStock at A predicted to be (starting price)', APrice)
     print('Stock at B predicted to be', BPrice)
     print('Stock at C predicted to be', CPrice)
     print('Stock at D predicted to be', DPrice)

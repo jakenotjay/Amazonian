@@ -4,27 +4,18 @@ import plotly.graph_objects as go
 import numpy as np
 from plotly.subplots import make_subplots
 from datetime import date as dt
-import pylab
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 
-stockname = 'AMZN'
+stockname = 'DCL'
 
 daily = pd.read_pickle('./'+stockname+'daily.pkl')
 weekly = pd.read_pickle('./'+stockname+'weekly.pkl')
 monthly = pd.read_pickle('./'+stockname+'monthly.pkl')
 
-daily['Dates'] = pd.to_datetime(daily['Dates'])
-daily = daily.set_index('Dates')
-weekly['Dates'] = pd.to_datetime(weekly['Dates'])
-weekly = weekly.set_index('Dates')
-monthly['Dates'] = pd.to_datetime(monthly['Dates'])
-monthly = monthly.set_index('Dates')
-
 daily['Adj Close'] = pd.to_numeric(daily['Adj Close'])
 weekly['Adj Close'] = pd.to_numeric(weekly['Adj Close'])
 monthly['Adj Close'] = pd.to_numeric(monthly['Adj Close'])
-
 
 def dailyReturns():
     dailyReturns = []
@@ -367,7 +358,7 @@ def calculateLongCallStats(APrice, BPrice, CPrice, DPrice, EPrice, FPrice, inter
     print('--------------calculating long call stats--------------')
     print('-------------------------------------------------------')
     
-    # will need to be updated 
+    # BARASH CHANGE DIS BIT
     strikePrice = ((drift * (2 * deltaT)) + 1) * APrice
     
     print('using drift', drift)
@@ -396,7 +387,7 @@ def calculateLongPutStats(APrice, BPrice, CPrice, DPrice, EPrice, FPrice, intere
     print('--------------calculating long put stats---------------')
     print('-------------------------------------------------------')
     
-    # strike price needs to be updated
+    # BARASH CHANGE DIS
     strikePrice = (1 - (drift * (2 * deltaT))) * APrice
     
     print('using drift', drift)
@@ -476,7 +467,11 @@ def generatePartOneStats(startDate, endDate):
     produceQQplot(returns)
 
     # time in years to predict to    
-    predictionTime = 1
+    predictionTime = 0.25
+    deltaS, uncertainty = predictFuturePrice(returnsFrac, startDate, endDate, predictionTime, confidenceInterval = 2)
+    predictionTime = 0.5
+    deltaS, uncertainty = predictFuturePrice(returnsFrac, startDate, endDate, predictionTime, confidenceInterval = 2)
+    predictionTime = 1.0
     deltaS, uncertainty = predictFuturePrice(returnsFrac, startDate, endDate, predictionTime, confidenceInterval = 2)
 
     # invest principal of 1 mil over same time period

@@ -1,7 +1,7 @@
 import csv
 import pandas as pd
 
-filename = "./data/AAPL.csv"
+filename = "./data/QCOMdaily.csv"
 
 dates = []
 openList = []
@@ -43,4 +43,4 @@ df = df.set_index('Dates')
 print(df)
 print(df.dtypes)
 
-df.to_pickle('AAPLDaily.pkl')
+df.to_pickle('QCOMdaily.pkl')

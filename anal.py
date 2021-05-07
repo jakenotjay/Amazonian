@@ -193,6 +193,7 @@ def produceNormDistFig(returns, returnRange, normalDistribution):
     normDistFig.update_layout(
         title_text="Daily returns histogram and normal distribution of daily returns"
     )
+    normDistFig.update_layout(showlegend=False)
 
     # Set x-axis title
     normDistFig.update_xaxes(title_text="Daily returns (%)")
@@ -533,7 +534,7 @@ def generatePartTwoStats(startDate, endDate):
     print('------------------------------------------------------------')
     print('')
 
-startDate = dt.fromisoformat('2015-01-01')
+startDate = dt.fromisoformat('2015-01-21')
 endDate = dt.fromisoformat('2020-12-31')
 generatePartOneStats(startDate, endDate)
 generatePartTwoStats(startDate, endDate)
